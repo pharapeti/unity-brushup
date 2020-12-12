@@ -6,12 +6,19 @@ public class Lander : MonoBehaviour
 {
     [Header("Engine Thrust (N)")]
     public float engineThrust; // in Newtons (N) in positive Y direction
+    private float engineOutput = 0;
 
     private Rigidbody rigidbody;
 
     // Landing Events
     public delegate void LandedAction();
     public static event LandedAction OnLanding;
+
+    public delegate void CrashLandedAction();
+    public static event CrashLandedAction OnCrashLanding;
+
+    public delegate void UpdatedEngineOutput(float engineOutput);
+    public static event UpdatedEngineOutput onEngineOutputChange;
 
     // Start is called before the first frame update
     void Start()
@@ -21,14 +28,44 @@ public class Lander : MonoBehaviour
 
     void FixedUpdate()
     {
-        rigidbody.AddForce(gameObject.GetComponent<Transform>().transform.up * engineThrust);
+        if (Input.GetKey(KeyCode.Space))
+        {
+            if (engineOutput < engineThrust)
+            {
+                engineOutput++;
+            }
+            rigidbody.AddForce(gameObject.GetComponent<Transform>().transform.up * engineOutput);
+
+        } else
+        {
+            if (engineOutput > 0)
+            {
+                engineOutput--;
+            }
+        }
+
+        if (onEngineOutputChange != null)
+        {
+            onEngineOutputChange(engineOutput);
+        }
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        if (OnLanding != null)
+        Debug.Log(collision.relativeVelocity.magnitude);
+        if (collision.relativeVelocity.magnitude > 10)
         {
-            OnLanding();
+            if (OnCrashLanding != null)
+            {
+                OnCrashLanding();
+            }
+        }
+        else
+        {
+            if (OnLanding != null)
+            {
+                OnLanding();
+            }
         }
     }
 }
